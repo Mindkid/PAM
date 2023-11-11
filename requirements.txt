@@ -6,3 +6,4 @@ PyAudio==0.2.14
 sounddevice==0.4.6
 noisereduce==3.0.0
 torch==2.1.0
+word2number==1.1

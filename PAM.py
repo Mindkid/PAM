@@ -1,49 +1,55 @@
-from openai import OpenAI
-from gtts import gTTS
+from sound_player import playSound
 from commands import Commands
-import speech_recognition as sr
-import re
+from commands import process_commands
+from commands import sanitize_command
+from scipy.io.wavfile import write
+from openai import OpenAI
+import sounddevice as sd
 import os
 
-PAM_SPEECH_FILE_NAME = "pam_speach.mp3"
+USER_SPEECH_FILE_NAME = "user_speech.mp3"
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-def sanitize_command(raw_command):
-    return re.sub(r'[^\w]', '', raw_command)
+# Recording settings
+FREQUENCY = 48000 
+DURANTION = 5
 
-def playSound(text):
-    tts = gTTS(text)
-    tts.save(PAM_SPEECH_FILE_NAME)
-    os.system("start " + PAM_SPEECH_FILE_NAME)
-    
 
-#playSound("Hello I'm PAM, i will be you Personal Assistant. Please, what do you need?")
 
-r = sr.Recognizer()
+def getCommand(userCommand):
+    try:
+        return Commands[userCommand]
+    except:
+        return Commands.NOTHING
 
-client = OpenAI(
-    api_key=OPENAI_API_KEY
-)
+playSound("Hello I'm PAM, i will be you Personal Assistant. Please, what do you need?")
+
+client = OpenAI()
 
 current_command = Commands.NOTHING
+processed_audio = ""
 
-while(current_command != Commands.BYE or current_command != Commands.EXIT):
-    with sr.Microphone() as source:
-        audio = r.listen(source)
+while(current_command != Commands.BYE and current_command != Commands.EXIT):
+    print("say your comamnd")
+    recording = sd.rec(int(DURANTION * FREQUENCY), 
+                   samplerate=FREQUENCY, channels=2)
+    sd.wait()
+
+    write(USER_SPEECH_FILE_NAME, FREQUENCY, recording)
     
-    with open("user_input.mp3", "wb") as audio_file:
-        audio_file.write(audio.get_raw_data())
+    user_request = open(USER_SPEECH_FILE_NAME, "rb")
+    processed_audio = client.audio.transcriptions.create(model="whisper-1", file=user_request, response_format="text").strip()
+    user_request.close()
+    
+    
+    if processed_audio == "":
+        continue
 
-    try:
-        processed_audio = transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file, response_format="text")
-        if processed_audio == "":
-            continue
+    print("processed data: {}", processed_audio)
 
-        print("This is the processed audio: {}", processed_audio)
-        current_command = sanitize_command(processed_audio.split()[0].upper())
-        print(current_command)
-        
-    except sr.RequestError as e:
-        print("Could not request results from Whisper API")
-
-
+    user_comands = processed_audio.split()
+    current_command = getCommand(sanitize_command(user_comands.pop(0).upper()))
+    process_commands(current_command, user_comands)
+ 
+playSound("Bye and I hope that I've helped")
