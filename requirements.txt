@@ -1,5 +1,8 @@
 gTTS==2.4.0
-openai==1.2.0
+openai==1.2.3
 wavio==0.0.8
-scipy=1.11.3
+scipy==1.11.3
 PyAudio==0.2.14
+sounddevice==0.4.6
+noisereduce==3.0.0
+torch==2.1.0
