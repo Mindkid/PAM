@@ -4,7 +4,7 @@ from slack_sdk.errors import SlackApiError
 import time
 import os
 
-USER_NAME = "SpongeBob says: "
+USER_NAME = os.getlogin() + " says: "
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 
 client = WebClient(token=SLACK_TOKEN)
